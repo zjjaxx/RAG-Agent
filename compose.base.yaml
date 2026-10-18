@@ -1,0 +1,28 @@
+services:
+  db:
+    image: pgvector/pgvector:pg18-trixie
+    restart: always
+    # set shared memory limit when using docker compose
+    shm_size: 128mb
+    ports:
+      - "5432:5432" 
+    volumes:
+      # PG 18+：挂整棵 /var/lib/postgresql，数据会落到其子目录，方便日后 pg_upgrade --link
+      - ${DB_DATA:-./db_data}:/var/lib/postgresql
+      # 仅在数据目录首次初始化时执行
+      - ./init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$DB_USERNAME -d $$DB_DATABASE"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080

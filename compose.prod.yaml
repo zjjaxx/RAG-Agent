@@ -1,0 +1,39 @@
+# 生产覆盖：docker compose -f compose.base.yaml -f compose.prod.yaml --env-file .env.production up -d
+# 与 compose.base.yaml 合并：在共用 db 的基础上增加 server，并收紧生产暴露面
+services:
+  server:
+    container_name: rag-server
+    build: .
+    # 异常退出自动重启；手动 docker stop 后不再自启（含 Docker 守护进程重启后）
+    restart: unless-stopped
+    # 宿主机 3008 → 容器内 3000（应用监听 PORT，生产一般为 3000）
+    ports:
+      - "3008:3000"
+    env_file:
+      - .env.production
+    # 等 db healthcheck 通过后再启动，避免抢连未就绪的 Postgres
+    depends_on:
+      db:
+        condition: service_healthy
+    # 周期探测 /health；失败达 retries 次则标记 unhealthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s      # 探测间隔
+      timeout: 3s        # 单次探测超时
+      retries: 5         # 连续失败次数后判 unhealthy
+      start_period: 20s  # 启动宽限期，此间失败不计入 retries
+
+  db:
+    # 覆盖 base 里的 "5432:5432"：生产不把数据库端口暴露到宿主机
+    ports: !reset []
+
+  adminer:
+    # 挂到不会默认启用的 profile，生产 up 时不启动管理界面
+    profiles:
+      - donotstart
