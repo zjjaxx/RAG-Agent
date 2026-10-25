@@ -1,11 +1,13 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
+  OneToOne,
   PrimaryColumn,
-  UpdateDateColumn,
+  type Relation,
 } from 'typeorm';
 import { bigintTransformer } from '../../common/transformers/bight.transformer.js';
+import { BaseEntity } from '../../common/entity/base-entity.js';
+import { ContentEntity } from './content.entity.js';
 
 /** 文档状态 */
 export enum DocumentStatus {
@@ -19,7 +21,7 @@ export enum DocumentStatus {
 
 /** 文档元数据（PostgreSQL kh_document） */
 @Entity('kh_document')
-export class DocumentEntity {
+export class DocumentEntity extends BaseEntity {
   /** 雪花 ID */
   @PrimaryColumn({ type: 'bigint', transformer: bigintTransformer })
   id: string;
@@ -28,11 +30,13 @@ export class DocumentEntity {
   @Column({ type: 'varchar' })
   title: string;
 
-  /** MongoDB document_content._id */
-  @Column({ name: 'content_id', type: 'varchar', unique: true })
-  contentId: string;
+  /** 正文（共享主键一对一；列表查询勿默认 join） */
+  @OneToOne(() => ContentEntity, (content) => content.document, {
+    cascade: true,
+  })
+  content?: Relation<ContentEntity>;
 
-  /** 摘要 */
+  /** 摘要（列表展示用） */
   @Column({ type: 'varchar', nullable: true })
   summary?: string | null;
 
@@ -67,9 +71,9 @@ export class DocumentEntity {
   @Column({ name: 'cover_image', type: 'varchar', nullable: true })
   coverImage?: string | null;
 
-  /** 标签（逗号分隔） */
-  @Column({ type: 'varchar', nullable: true })
-  tags?: string | null;
+  /** 标签 */
+  @Column({ type: 'text', array: true, nullable: true })
+  tags?: string[] | null;
 
   /** 状态：0 草稿 / 1 已发布 / 2 已归档 */
   @Column({ type: 'smallint', default: DocumentStatus.Draft })
@@ -95,7 +99,7 @@ export class DocumentEntity {
   @Column({ name: 'favourite_count', type: 'int', default: 0 })
   favouriteCount: number;
 
-  /** 字数 */
+  /** 字数（写正文时同步更新） */
   @Column({ name: 'word_count', type: 'int', default: 0 })
   wordCount: number;
 
@@ -106,14 +110,6 @@ export class DocumentEntity {
   /** 是否公开 */
   @Column({ name: 'is_public', type: 'boolean', default: false })
   isPublic: boolean;
-
-  /** 创建时间 */
-  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
-  createdAt: Date;
-
-  /** 更新时间 */
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
-  updatedAt: Date;
 
   /** 创建人 ID */
   @Column({
@@ -132,8 +128,4 @@ export class DocumentEntity {
     transformer: bigintTransformer,
   })
   updateBy?: string | null;
-
-  /** 逻辑删除 */
-  @Column({ type: 'boolean', default: false })
-  deleted: boolean;
 }

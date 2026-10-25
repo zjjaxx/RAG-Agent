@@ -4,6 +4,7 @@ import { AppService } from './app.service.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DocumentModule } from './document/document.module.js';
+import { CommonModule } from './common/common.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { DocumentModule } from './document/document.module.js';
       }),
       inject: [ConfigService],
     }),
+    CommonModule,
     DocumentModule,
   ],
   controllers: [AppController],
