@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import {
   Entity,
   PrimaryColumn,
@@ -14,6 +15,7 @@ import { BaseEntity } from '../../common/entity/base-entity.js';
 @Entity('kh_document_content')
 export class ContentEntity extends BaseEntity {
   /** 与 Document.id 相同 */
+  @ApiProperty({ description: '与文档相同的雪花 ID' })
   @PrimaryColumn({ type: 'bigint', transformer: bigintTransformer })
   id: string;
 
@@ -24,10 +26,12 @@ export class ContentEntity extends BaseEntity {
   document: Relation<DocumentEntity>;
 
   /** 正文 */
+  @ApiProperty({ description: '正文' })
   @Column({ type: 'text' })
   content: string;
 
   /** 内容版本（每次更新正文 +1） */
+  @ApiProperty({ description: '内容版本（每次更新正文 +1）', default: 1 })
   @Column({ type: 'int', default: 1 })
   version: number;
 }
